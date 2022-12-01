@@ -23,7 +23,7 @@
                         themes-dir = import ./derivations/themes-dir super;
                         installtheme = import ./derivations/installtheme super;
                     })
-                    (self: super: { dotfiles = import ./derivations/dotfiles super; })
+                    (self: super: { themenix = import ./derivations/themenix super; })
                 ];
             };
             std = pkgs.lib;

@@ -4,32 +4,32 @@ let
     std = pkgs.lib;
 
     inherit (builtins)
-        concatStringsSep;
+        concatStringsSep
+        mapAttrs;
 
     inherit (std.attrsets)
         mapAttrsToList;
 in
 
 std.makeOverridable
-({ lib, src, files }:
+({ themes, src, files }:
 
 let
-    inherit (lib.themes)
-        eachTheme;
-
-    themeDirs = eachTheme (themeName: theme:
-        let
-            theme' = theme { inherit themeName pkgs lib; };
-            files' = files {
-                inherit themeName;
-                theme = theme';
-            };
-        in pkgs.substitute-dir.override {
-            inherit src;
-            name = themeName;
-            files = files';
-        }
-    );
+    themeDirs = 
+        mapAttrs
+        (themeName: theme:
+            let
+                files' =
+                    if files == null
+                    then {}
+                    else files { inherit themeName theme; };
+            in pkgs.substitute-dir.override {
+                inherit src;
+                name = themeName;
+                files = files';
+            }
+        )
+        themes;
 
     cmds =
         mapAttrsToList
@@ -49,7 +49,7 @@ ${concatStringsSep "\n" cmds}
 
 )
 {
-    lib = null;
+    themes = {};
     src = null;
     files = null;
 }

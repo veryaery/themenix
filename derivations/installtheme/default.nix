@@ -6,24 +6,20 @@ let
     inherit (builtins)
         concatStringsSep
         mapAttrsToList;
-
-    inherit (std.strings)
-        optionalString;
 in
 
 std.makeOverridable
 ({ themesDir, postInstallScripts }:
 
 let
-    cmds = optionalString (postInstallScripts != null) (
+    cmds =
         mapAttrsToList
         (name: script: ''
             # ----- ${name} ------
             ${script}
             # -----
         '')
-        postInstallScripts
-    );
+        postInstallScripts;
 in
 
 pkgs.writeScript
@@ -141,5 +137,5 @@ ${concatStringsSep "\n\n" cmds}
 )
 {
     themesDir = null;
-    postInstallScripts = null;
+    postInstallScripts = {};
 }

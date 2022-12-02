@@ -1,4 +1,8 @@
-{ themes, themeName, activationScript }:
+{
+    themes ? {},
+    themeName ? null,
+    activationScript ? false
+}:
 
 { config, ... } @ args:
 
@@ -60,7 +64,9 @@ in
         environment.systemPackages = [ themenix ];
 
         system.userActivationScripts.themenix.text = mkIf activationScript
-            (throwIf (themeName == null) "TODO"
+            (throwIf (themeName == null)
+            ("themeName is required while activationScript is enabled." + " " +
+            "themenix was evaluated with a null themeName while activationScript was enabled.")
             "${themenix}/bin/installtheme ${themeName}");
     };
 }

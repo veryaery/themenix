@@ -1,7 +1,15 @@
-pkgs:
+std:
 
+let
+    module = import ./module std;
+    helper = import ./helper std;
+in
 {
-    hosts = import ./hosts.nix pkgs;
-    themes = import ./themes.nix pkgs;
-    trivial = import ./trivial.nix pkgs;
+    inherit module;
+    inherit (module)
+        themenix;
+
+    inherit helper;
+    inherit (helper)
+        eachTheme;
 }

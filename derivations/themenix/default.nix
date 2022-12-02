@@ -17,7 +17,7 @@ let
 in
 
 pkgs.runCommandLocal
-"dotfiles"
+"themenix"
 {}
 ''
 

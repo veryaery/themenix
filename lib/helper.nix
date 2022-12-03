@@ -3,7 +3,20 @@ std:
 let
     inherit (builtins)
         attrNames
+        baseNameOf
+        concatStringsSep
+        mapAttrs
         readDir;
+
+    inherit (std.strings)
+        splitString;
+
+    inherit (std.attrsets)
+        mapAttrs'
+        nameValuePair;
+
+    inherit (lib.lists)
+        init;
         
     baseNameOfExtentionless = s: concatStringsSep "." (init (splitString "." (baseNameOf s)));
 

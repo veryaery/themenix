@@ -1,8 +1,8 @@
 std:
 
 let
-    module = import ./module std;
-    helper = import ./helper std;
+    module = import ./module.nix std;
+    helper = import ./helper.nix std;
 in
 {
     inherit module;

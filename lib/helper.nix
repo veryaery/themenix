@@ -2,7 +2,6 @@ std:
 
 let
     inherit (builtins)
-        attrNames
         baseNameOf
         concatStringsSep
         mapAttrs
@@ -13,6 +12,7 @@ let
 
     inherit (std.attrsets)
         mapAttrs'
+        mapAttrsToList
         nameValuePair;
 
     inherit (lib.lists)
@@ -31,8 +31,7 @@ let
                         nameValuePair
                         themeName
                         (
-                            import
-                            (themesPath + "/${file}")
+                            import (themesPath + "/${file}")
                             ({ inherit themeName; } // args)
                         )
                 )

@@ -12,10 +12,9 @@ let
 
     inherit (std.attrsets)
         mapAttrs'
-        mapAttrsToList
         nameValuePair;
 
-    inherit (lib.lists)
+    inherit (std.lists)
         init;
         
     baseNameOfExtentionless = s: concatStringsSep "." (init (splitString "." (baseNameOf s)));

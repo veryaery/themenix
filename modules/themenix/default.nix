@@ -49,7 +49,7 @@ in
         enable = mkEnableOption "themenix";
 
         src = mkOption {
-            type = types.package;
+            type = types.path;
         };
 
         files = mkOption {

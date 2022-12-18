@@ -4,7 +4,9 @@ let
     std = pkgs.lib;
 
     inherit (builtins)
-        concatStringsSep
+        concatStringsSep;
+
+    inherit (std.attrsets)
         mapAttrsToList;
 in
 

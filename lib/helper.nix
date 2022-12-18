@@ -2,14 +2,22 @@ std:
 
 let
     inherit (builtins)
+        baseNameOf
+        concatStringsSep
         mapAttrs
         readDir;
+
+    inherit (std.strings)
+        splitString;
 
     inherit (std.attrsets)
         mapAttrs'
         nameValuePair;
+
+    inherit (std.lists)
+        init;
         
-    baseNameOfExtentionless = s: stringBefore (lastPathComponent s) ".";
+    baseNameOfExtentionless = s: concatStringsSep "." (init (splitString "." (baseNameOf s)));
 
     eachTheme = themesPath: args: f:
         let

@@ -4,7 +4,7 @@
     activationScript ? false
 }:
 
-{ config, ... } @ args:
+{ config, pkgs, ... } @ args:
 
 let 
     std = args.lib; 
@@ -23,7 +23,7 @@ let
         types;
 
     drvsPath = ../../derivations;
-    pkgs = (((args.pkgs
+    pkgs' = (((pkgs
         .extend (self: super: { substitutions-json = import (drvsPath + "/substitutions-json") super; }))
         .extend (self: super: { substitute-dir = import (drvsPath + "/substitute-dir") super; }))
         .extend (self: super: {
@@ -32,7 +32,7 @@ let
         }))
         .extend (self: super: { themenix = import (drvsPath + "/themenix") super; });
 
-    themenix = pkgs.themenix.override {
+    themenix = pkgs'.themenix.override {
         inherit themes;
         inherit (cfg)
             src
@@ -44,6 +44,7 @@ let
 in
 {
     # TODO: test default values.
+    # TODO: use asserts.
     options.theme = {
         enable = mkEnableOption "themenix";
 

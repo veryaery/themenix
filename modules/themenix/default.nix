@@ -25,7 +25,10 @@ let
     drvsPath = ../../derivations;
     pkgs' = (((pkgs
         .extend (self: super: { substitutions-json = import (drvsPath + "/substitutions-json") super; }))
-        .extend (self: super: { substitute-dir = import (drvsPath + "/substitute-dir") super; }))
+        .extend (self: super: {
+            substitute-dir = import (drvsPath + "/substitute-dir") super;
+            postinstall = import (drvsPath + "postinstall") super;
+        }))
         .extend (self: super: {
             themes-dir = import (drvsPath + "/themes-dir") super;
             installtheme = import (drvsPath + "/installtheme") super;

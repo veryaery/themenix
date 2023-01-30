@@ -27,7 +27,7 @@ let
         .extend (self: super: { substitutions-json = import (drvsPath + "/substitutions-json") super; }))
         .extend (self: super: {
             substitute-dir = import (drvsPath + "/substitute-dir") super;
-            postinstall = import (drvsPath + "postinstall") super;
+            postinstall = import (drvsPath + "/postinstall") super;
         }))
         .extend (self: super: {
             themes-dir = import (drvsPath + "/themes-dir") super;

@@ -13,7 +13,9 @@
                 localSystem = { inherit system; };
                 overlays = [
                     (self: super: { substitutions-json = import ./derivations/substitutions-json super; })
-                    (self: super: { substitute-dir = import ./derivations/substitute-dir super; })
+                    (self: super: {
+                        substitute-dir = import ./derivations/substitute-dir super;
+                        postinstall = import ./derivations/postinstall super })
                     (self: super: {
                         themes-dir = import ./derivations/themes-dir super;
                         installtheme = import ./derivations/installtheme super; })

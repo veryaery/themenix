@@ -2,26 +2,15 @@ pkgs:
 
 let
     std = pkgs.lib;
-
-    inherit (builtins)
-        concatStringsSep;
-
-    inherit (std.attrsets)
-        mapAttrsToList;
 in
 
 std.makeOverridable
 ({ themesDir, postInstallScripts }:
 
 let
-    cmds =
-        mapAttrsToList
-        (name: script: ''
-            # ----- ${name} ------
-            ${script}
-            # -----
-        '')
-        postInstallScripts;
+    postinstall = pkgs.postinstall.override {
+        inherit postInstallScripts;
+    };
 in
 
 pkgs.writeScript
@@ -133,7 +122,7 @@ string join \n $trackedFiles > $trackedFilesFile
 
 set -U THEMENIX_THEME_NAME $themeName
 
-${concatStringsSep "\n\n" cmds}
+${postinstall}
 ''
 
 )

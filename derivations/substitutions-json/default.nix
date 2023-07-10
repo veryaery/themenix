@@ -11,8 +11,8 @@ let
         toJSON
         concatStringsSep;
 
-    inherit (std.trivial)
-        throwIfNot;
+    inherit (std.asserts)
+        assertMsg;
 
     inherit (std.lists)
         foldr
@@ -45,28 +45,28 @@ let
                     parsedValue = parseSubs' path value;
                 in
                 {
-                    strs = (
-                        if parsedValue.strs == {}
-                        then z.strs
-                        else z.strs // { ${name} = parsedValue.strs; }
+                    vals = (
+                        if parsedValue.vals == {}
+                        then z.vals
+                        else z.vals // { ${name} = parsedValue.vals; }
                     );
                     cmds = z.cmds // parsedValue.cmds;
                 }
             else
                 # value is a substitution. Merge substitution attribute.
-                throwIfNot (isAttrs value) "Substitution ${path} is not of type attrset."
-                (if value ? "str" && value ? "cmd" then
-                    throw "Substitutions may only have one of str or cmd. Substitution ${path} has both a str and a cmd."
-                else if value ? "str" then
-                    throwIfNot (isString value.str) "Substitution ${path} str is not of type string."
-                    (z // { strs = z.strs // { ${name} = value.str; }; })
+                assert assertMsg (isAttrs value) "Substitution ${path} is not of type attrset.";
+
+                if value ? "val" && value ? "cmd" then
+                    throw "Substitutions may only have one of val or cmd. Substitution ${path} has both a val and a cmd."
+                else if value ? "val" then
+                    z // { vals = z.vals // { ${name} = value.val; }; }
                 else if value ? "cmd" then
-                    throwIfNot (isString value.cmd) "Substitution ${path} cmd is not of type string."
-                    (z // { cmds = z.cmds // { ${path} = value.cmd; }; })
+                    assert assertMsg (isString value.cmd) "Substitution ${path} cmd is not of type string.";
+                    z // { cmds = z.cmds // { ${path} = value.cmd; }; }
                 else
-                    throw "Substitutions must have one of str or cmd. Substitution ${path} is missing either a str or a cmd.")
+                    throw "Substitutions must have one of str or cmd. Substitution ${path} is missing either a str or a cmd."
         )
-        { strs = {}; cmds = {}; }
+        { vals = {}; cmds = {}; }
         (attrNames attrs);
 
     parseSubs = parseSubs' null;
@@ -78,9 +78,9 @@ std.makeOverridable
 let
     parsedSubs = parseSubs subs;
 
-    strsJson = pkgs.writeTextFile {
+    valsJson = pkgs.writeTextFile {
         name = "substitutions.json";
-        text = toJSON parsedSubs.strs;
+        text = toJSON parsedSubs.vals;
     };
 
     cmds =
@@ -109,7 +109,7 @@ pkgs.runCommandLocal
 { nativeBuildInputs = singleton pkgs.jq; }
 ''
 
-cat ${strsJson} > $out
+cat ${valsJson} > $out
 ${concatStringsSep "\n" cmds}
 
 ''

@@ -1,16 +1,24 @@
+{ flakeRoot, lib } @ args:
+
 {
-    themes ? {},
-    themeName ? null,
-    activationScript ? false
+    themes ? {}
 }:
 
-{ config, pkgs, ... } @ args:
+{ config, pkgs, ... } @ nixosModuleArgs:
 
 let 
     std = args.lib; 
 
+    inherit (builtins)
+        attrNames
+        elem
+        isString
+        mapAttrs
+        seq;
+
     inherit (std.trivial)
-        throwIf;
+        const
+        throwIfNot;
 
     inherit (std.modules)
         mkIf;
@@ -22,41 +30,58 @@ let
     inherit (std)
         types;
 
-    drvsPath = ../../derivations;
+    drvsPath = flakeRoot + "/derivations";
     pkgs' = (((pkgs
         .extend (self: super: { substitutions-json = import (drvsPath + "/substitutions-json") super; }))
         .extend (self: super: {
             substitute-dir = import (drvsPath + "/substitute-dir") super;
-            postinstall = import (drvsPath + "/postinstall") super;
+            install-user = import (drvsPath + "/install-user") super { inherit lib; };
         }))
         .extend (self: super: {
-            themes-dir = import (drvsPath + "/themes-dir") super;
-            installtheme = import (drvsPath + "/installtheme") super;
+            users-dir = import (drvsPath + "/users-dir") super;
+            install-theme = import (drvsPath + "/install-theme") super;
+            activate = import (drvsPath + "/activate") super { inherit lib; };
         }))
         .extend (self: super: { themenix = import (drvsPath + "/themenix") super; });
 
     themenix = pkgs'.themenix.override {
         inherit themes;
         inherit (cfg)
-            src
-            files
+            users
             postInstallScripts;
+    };
+
+    usersDir = pkgs'.users-dir.override {
+        inherit themes;
+        inherit (cfg) users;
+    };
+
+    activate = pkgs'.activate.override {
+        inherit themes usersDir;
+        inherit (cfg) postInstallScripts;
     };
 
     cfg = config.theme;
 in
 {
-    # TODO: test default values.
-    # TODO: use asserts.
     options.theme = {
         enable = mkEnableOption "themenix";
 
-        src = mkOption {
-            type = types.path;
-        };
+        users = mkOption {
+            type = types.attrsOf (types.submodule ({ options = {
+                defaultTheme = mkOption {
+                    type = types.str;
+                };
 
-        files = mkOption {
-            type = types.functionTo (types.attrsOf types.attrs);
+                src = mkOption {
+                    type = types.nullOr types.path;
+                };
+
+                files = mkOption {
+                    type = types.functionTo (types.attrsOf types.attrs);
+                    default = const {};
+                };
+            }; }));
         };
 
         postInstallScripts = mkOption {
@@ -64,13 +89,25 @@ in
         };
     };
 
-    config = mkIf cfg.enable {
-        environment.systemPackages = [ themenix ];
+    config = mkIf cfg.enable (
+        seq
+        # Assert users defaultTheme.
+        (mapAttrs (userKey: userValue:
+            throwIfNot
+            (userValue ? "defaultTheme")
+            ("Every user must define a defaultTheme." + " " +
+            "User ${userKey} is missing a defaultTheme.")
+            (
+                throwIfNot
+                (elem userValue.defaultTheme (attrNames themes))
+                "User ${userKey} defaultTheme ${userValue.defaultTheme} does not exist."
+                userValue
+            )
+        ) cfg.users)
+        {
+            environment.systemPackages = [ themenix ];
 
-        system.userActivationScripts.themenix.text = mkIf activationScript
-            (throwIf (themeName == null)
-            ("themeName is required while activationScript is enabled." + " " +
-            "themenix was evaluated with a null themeName while activationScript was enabled.")
-            "${themenix}/bin/installtheme ${themeName}");
-    };
+            system.activationScripts.themenix.text = mkIf (cfg.postInstallScripts != {}) "${activate}";
+        }
+    );
 }

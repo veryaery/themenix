@@ -1,15 +1,16 @@
-std:
+args:
 
 let
-    module = import ./module.nix std;
-    helper = import ./helper.nix std;
+    module = import ./module.nix args;
+    strings = import ./strings.nix args;
 in
 {
     inherit module;
     inherit (module)
         themenix;
 
-    inherit helper;
-    inherit (helper)
-        eachTheme;
+    inherit strings;
+    inherit (strings)
+        escapeFishArg
+        escapeFishArgs;
 }

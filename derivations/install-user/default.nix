@@ -2,40 +2,49 @@ pkgs:
 
 let
     std = pkgs.lib;
+
+    inherit (builtins)
+        concatStringsSep;
+    
+    inherit (std.attrsets)
+        mapAttrsToList;
+
+    post-install = { postInstallScripts }:
+        let scripts =
+            mapAttrsToList
+            (name: script: ''
+                # ----- ${name} ------
+                ${script}
+                # -----
+            '')
+            postInstallScripts;
+        in
+            pkgs.writeShellScript
+            "postinstall"
+            (concatStringsSep "\n\n" scripts);
 in
 
 std.makeOverridable
-({ themesDir, postInstallScripts }:
+({ usersDir, postInstallScripts }:
 
 let
-    postinstall = pkgs.postinstall.override {
-        inherit postInstallScripts;
-    };
+    postInstall = post-install { inherit postInstallScripts; };
 in
 
 pkgs.writeScript
-"installtheme"
+"installuser"
 
 ''
 #!${pkgs.fish}/bin/fish
 
-if [ (count $argv) -lt 1 ]
-    echo (set_color red)No theme was provided.(set_color normal) >&2
-    echo (set_color green)Available themes:(set_color normal) (ls -A ${themesDir}) >&2
-    return 1
-end
-
 set -l themeName $argv[1]
-set -l themeDir (realpath ${themesDir}/$themeName)
-
-if [ ! -d $themeDir ]
-    echo (set_color red)The theme $themeName does not exist.(set_color normal) >&2
-    echo (set_color green)Available themes:(set_color normal) (ls -A ${themesDir}) >&2
-    return 1
-end
 
 set -q XDG_DATA_DIR; or set XDG_DATA_DIR $HOME/.local/share
-set -l trackedFilesFile $XDG_DATA_DIR/themenix/tracked_files
+set -l dataDir $XDG_DATA_DIR/themenix
+set -l trackedFilesFile $dataDir/tracked_files
+set -l activeThemeFile $dataDir/active_theme
+
+set -l themeDir (realpath ${usersDir}/(whoami)/themes/$themeName)
 set -l trackedFiles
 [ -e $trackedFilesFile ]; and set trackedFiles (cat $trackedFilesFile)
 
@@ -84,8 +93,8 @@ if [ (count $trackedFiles) -gt 0 ]
     for dir in $deferredDirs
         set trackedFiles (string split -n $dir $trackedFiles)
         set_color yellow
-        echo The tracked directory $dir should have been removed but couldn\'t because it contains untracked files.
-        echo The directory has been untracked and must be managed manually from now on.
+        echo The tracked directory $dir should have been removed but could not be because it contains untracked files.
+        echo The directory has been untracked and must be manually managed from now on.
         set_color normal
     end
 end
@@ -116,17 +125,18 @@ for themeFile in (find $themeDir -type f)
     ! contains $file $trackedFiles; and set -a trackedFiles $file
 end
 
-mkdir -p (dirname $trackedFilesFile)
+mkdir -p $dataDir
 truncate -s 0 $trackedFilesFile
 string join \n $trackedFiles > $trackedFilesFile
+echo $themeName > $activeThemeFile
 
 set -U THEMENIX_THEME_NAME $themeName
 
-${postinstall}
+${postInstall}
 ''
 
 )
 {
-    themesDir = null;
+    usersDir = null;
     postInstallScripts = {};
 }

@@ -7,7 +7,10 @@
     outputs = { nixpkgs, flake-utils, ... } @ inputs:
     let
         std = nixpkgs.lib;
-        lib = import ./lib std;
+
+        flakeRoot = ./.;
+        lib = import ./lib { inherit std flakeRoot; };
+
         packages = flake-utils.lib.eachDefaultSystem (system:
             let pkgs = import nixpkgs {
                 localSystem = { inherit system; };
@@ -15,14 +18,16 @@
                     (self: super: { substitutions-json = import ./derivations/substitutions-json super; })
                     (self: super: {
                         substitute-dir = import ./derivations/substitute-dir super;
-                        postinstall = import ./derivations/postinstall super; })
+                        install-user = import ./derivations/install-user super { inherit lib; }; })
                     (self: super: {
-                        themes-dir = import ./derivations/themes-dir super;
-                        installtheme = import ./derivations/installtheme super; })
+                        users-dir = import ./derivations/users-dir super;
+                        install-theme = import ./derivations/install-theme super;
+                        activate = import ./derivations/activate super { inherit lib; }; })
                     (self: super: { themenix = import ./derivations/themenix super; })
                 ];
-            }; in
-            { packages.default = pkgs.themenix; });
+            }; in {
+                packages.default = pkgs.themenix { inherit lib flakeRoot; };
+            });
     in
     { inherit lib; } // packages;
 }

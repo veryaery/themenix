@@ -5,13 +5,13 @@ let
 in
 
 std.makeOverridable
-({ themes, src, files, postInstallScripts }:
+({ themes, users, postInstallScripts }:
 
 let
-    themesDir = pkgs.themes-dir.override {
-        inherit themes src files;
+    usersDir = pkgs.users-dir.override {
+        inherit themes users;
     };
-    installtheme = pkgs.installtheme.override {
+    installTheme = pkgs.install-theme.override {
         inherit themesDir postInstallScripts;
     };
 in
@@ -29,7 +29,6 @@ cp ${installtheme} $out/bin/installtheme
 )
 {
     themes = {};
-    src = null;
-    files = null;
+    users = {};
     postInstallScripts = {};
 }

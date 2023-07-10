@@ -44,11 +44,11 @@ set -l dataDir $XDG_DATA_DIR/themenix
 set -l trackedFilesFile $dataDir/tracked_files
 set -l activeThemeFile $dataDir/active_theme
 
-set -l themeDir (realpath ${usersDir}/(whoami)/themes/$themeName)
+set -l themeDir (${pkgs.coreutils}/bin/realpath ${usersDir}/(whoami)/themes/$themeName)
 set -l trackedFiles
-[ -e $trackedFilesFile ]; and set trackedFiles (cat $trackedFilesFile)
+[ -e $trackedFilesFile ]; and set trackedFiles (${pkgs.coreutils}/bin/cat $trackedFilesFile)
 
-if [ (count $trackedFiles) -gt 0 ]
+if [ (builtin count $trackedFiles) -gt 0 ]
     set -l deferredDirs
 
     set -l invalidated true
@@ -68,12 +68,12 @@ if [ (count $trackedFiles) -gt 0 ]
             end
 
             if [ -d $homeFile ]
-                if [ -n "$(ls -A $homeFile)" ]
+                if [ -n "$(${pkgs.coreutils}/bin/ls -A $homeFile)" ]
                     # dir contains files. defer removal.
-                    ! contains $file $deferredDirs; and set -a deferredDirs $file
+                    ! builtin contains $file $deferredDirs; and set -a deferredDirs $file
                 else
                     # dir is empty. free to rm.
-                    rm -r $homeFile
+                    ${pkgs.coreutils}/bin/rm -r $homeFile
                     set deferredDirs (string split -n $file $deferredDirs)
                     set trackedFiles (string split -n $file $trackedFiles)
                     set invalidated true
@@ -82,7 +82,7 @@ if [ (count $trackedFiles) -gt 0 ]
             end
 
             if [ -e $homeFile ]
-                rm $homeFile
+                ${pkgs.coreutils}/bin/rm $homeFile
                 set trackedFiles (string split -n $file $trackedFiles)
                 set invalidated true
             end
@@ -92,43 +92,43 @@ if [ (count $trackedFiles) -gt 0 ]
     # untrack any deferred dirs which couldn't be removed.
     for dir in $deferredDirs
         set trackedFiles (string split -n $dir $trackedFiles)
-        set_color yellow
-        echo The tracked directory $dir should have been removed but could not be because it contains untracked files.
-        echo The directory has been untracked and must be manually managed from now on.
-        set_color normal
+        builtin set_color yellow
+        ${pkgs.coreutils}/bin/echo The tracked directory $dir should have been removed but could not be because it contains untracked files.
+        ${pkgs.coreutils}/bin/echo The directory has been untracked and must be manually managed from now on.
+        builtin set_color normal
     end
 end
 
-for themeFile in (find $themeDir -type f)
+for themeFile in (${pkgs.findutils}/bin/find $themeDir -type f)
     set -l file (string split -n -m1 $themeDir/ $themeFile)
     set -l homeFile $HOME/$file
 
     # ensure that parent directories exist and add any directories we make to tracked files list.
-    set -l segments (string split / (dirname $file))
-    for i in (seq (count $segments))
-        set -l dir (string join / $segments[(seq $i)])
+    set -l segments (string split / (${pkgs.coreutils}/bin/dirname $file))
+    for i in (${pkgs.coreutils}/bin/seq (builtin count $segments))
+        set -l dir (string join / $segments[(${pkgs.coreutils}/bin/seq $i)])
         set -l homeDir $HOME/$dir
 
         if [ ! -e $homeDir ]
-            mkdir $homeDir
+            ${pkgs.coreutils}/bin/mkdir $homeDir
             set -a trackedFiles $dir
         end
     end
 
-    cp --no-preserve=mode,ownership $themeFile $homeFile
+    ${pkgs.coreutils}/bin/cp --no-preserve=mode,ownership $themeFile $homeFile
     if [ -x $themeFile ]
-        chmod +x $homeFile
+        ${pkgs.coreutils}/bin/chmod +x $homeFile
     else
-        chmod -x $homeFile
+        ${pkgs.coreutils}/bin/chmod -x $homeFile
     end
 
-    ! contains $file $trackedFiles; and set -a trackedFiles $file
+    ! builtin contains $file $trackedFiles; and set -a trackedFiles $file
 end
 
-mkdir -p $dataDir
-truncate -s 0 $trackedFilesFile
+${pkgs.coreutils}/bin/mkdir -p $dataDir
+${pkgs.coreutils}/bin/truncate -s 0 $trackedFilesFile
 string join \n $trackedFiles > $trackedFilesFile
-echo $themeName > $activeThemeFile
+${pkgs.coreutils}/bin/echo $themeName > $activeThemeFile
 
 set -U THEMENIX_THEME_NAME $themeName
 

@@ -9,16 +9,8 @@
 let 
     std = args.lib; 
 
-    inherit (builtins)
-        attrNames
-        elem
-        isString
-        mapAttrs
-        seq;
-
     inherit (std.trivial)
-        const
-        throwIfNot;
+        const;
 
     inherit (std.modules)
         mkIf;
@@ -35,11 +27,11 @@ let
         .extend (self: super: { substitutions-json = import (drvsPath + "/substitutions-json") super; }))
         .extend (self: super: {
             substitute-dir = import (drvsPath + "/substitute-dir") super;
-            install-user = import (drvsPath + "/install-user") super { inherit lib; };
+            install-user = import (drvsPath + "/install-user") super;
         }))
         .extend (self: super: {
             users-dir = import (drvsPath + "/users-dir") super;
-            install-theme = import (drvsPath + "/install-theme") super;
+            install-theme = import (drvsPath + "/install-theme") super { inherit lib; };
             activate = import (drvsPath + "/activate") super { inherit lib; };
         }))
         .extend (self: super: { themenix = import (drvsPath + "/themenix") super; });
@@ -89,25 +81,9 @@ in
         };
     };
 
-    config = mkIf cfg.enable (
-        seq
-        # Assert users defaultTheme.
-        (mapAttrs (userKey: userValue:
-            throwIfNot
-            (userValue ? "defaultTheme")
-            ("Every user must define a defaultTheme." + " " +
-            "User ${userKey} is missing a defaultTheme.")
-            (
-                throwIfNot
-                (elem userValue.defaultTheme (attrNames themes))
-                "User ${userKey} defaultTheme ${userValue.defaultTheme} does not exist."
-                userValue
-            )
-        ) cfg.users)
-        {
-            environment.systemPackages = [ themenix ];
+    config = mkIf cfg.enable {
+        environment.systemPackages = [ themenix ];
 
-            system.activationScripts.themenix.text = mkIf (cfg.postInstallScripts != {}) "${activate}";
-        }
-    );
+        system.activationScripts.themenix.text = mkIf (cfg.postInstallScripts != {}) "${activate}";
+    };
 }

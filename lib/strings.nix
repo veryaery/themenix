@@ -2,12 +2,14 @@
 
 let
     inherit (builtins)
-        concatStringsSep
         replaceStrings;
+
+    inherit (std.strings)
+        concatMapStringsSep;
 
     escapeFishArg = arg: "'${replaceStrings [ "'" "\\" ] [ "\\'" "\\\\" ] (toString arg)}'";
 
-    escapeFishArgs = concatStringsSep " " escapeFishArg;
+    escapeFishArgs = concatMapStringsSep " " escapeFishArg;
 in
 {
     inherit

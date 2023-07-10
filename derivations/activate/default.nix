@@ -19,13 +19,13 @@ let
 
                 set -q XDG_DATA_DIR; or set XDG_DATA_DIR $HOME/.local/share
                 set -l activeThemeFile $XDG_DATA_DIR/themenix/active_theme
-                set -l defaultThemeFile (realpath ${usersDir}/(whoami)/default_theme)
+                set -l defaultThemeFile (${pkgs.coreutils}/bin/realpath ${usersDir}/(whoami)/default_theme)
 
-                set -l defaultTheme (cat $defaultThemeFile)
+                set -l defaultTheme (${pkgs.coreutils}/bin/cat $defaultThemeFile)
                 set -l activeTheme
-                [ -e $activeThemeFile ]; and set activeTheme (cat $activeThemeFile)
+                [ -e $activeThemeFile ]; and set activeTheme (${pkgs.coreutils}/bin/cat $activeThemeFile)
 
-                if contains $activeTheme $themeNames
+                if builtin contains $activeTheme $themeNames
                     ${installUser} $activeTheme
                 else
                     ${installUser} $defaultTheme
@@ -47,7 +47,7 @@ pkgs.writeScriptBin
 
 #!${pkgs.fish}/bin/fish
 
-for user in (ls -A ${usersDir})
+for user in (${pkgs.coreutils}/bin/ls -A ${usersDir})
     ${pkgs.su}/bin/su -c ${activateUser} - $user
 end
 

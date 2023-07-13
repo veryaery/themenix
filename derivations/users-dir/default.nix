@@ -14,7 +14,8 @@ let
         const;
 
     inherit (std.strings)
-        escapeShellArg;
+        escapeShellArg
+        optionalString;
    
     themes-dir = themes: { src, files }:
         let
@@ -47,7 +48,10 @@ let
             {}
             ''
                 mkdir $out
-                echo ${escapeShellArg defaultTheme} > $out/default_theme
+                ${
+                    optionalString (defaultTheme != null)
+                    "echo ${escapeShellArg defaultTheme} > $out/default_theme"
+                }
                 ln -s ${themesDir} $out/themes
             '';
 in

@@ -15,20 +15,27 @@ let
             pkgs.writeScript
             "activateuser"
             ''
+                #!${pkgs.fish}/bin/fish
+
                 set -l themeNames ${escapeFishArgs themeNames}
 
-                set -q XDG_DATA_DIR; or set XDG_DATA_DIR $HOME/.local/share
-                set -l activeThemeFile $XDG_DATA_DIR/themenix/active_theme
-                set -l defaultThemeFile (${pkgs.coreutils}/bin/realpath ${usersDir}/(whoami)/default_theme)
+                set -l targetUser $argv[1]
+
+                set -l targetHomeDir (${pkgs.getent}/bin/getent passwd $targetUser | ${pkgs.coreutils}/bin/cut -d : -f 6)
+                set -l targetXdgDataHome (${pkgs.su}/bin/su -s ${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/echo $XDG_DATA_HOME" - $targetUser)
+                [ -n "$targetXdgDataHome" ]; or set targetXdgDataHome $targetHomeDir/.local/share
+
+                set -l activeThemeFile $targetXdgDataHome/themenix/active_theme
+                set -l defaultThemeFile (${pkgs.coreutils}/bin/realpath ${usersDir}/$targetUser/default_theme)
 
                 set -l defaultTheme (${pkgs.coreutils}/bin/cat $defaultThemeFile)
                 set -l activeTheme
                 [ -e $activeThemeFile ]; and set activeTheme (${pkgs.coreutils}/bin/cat $activeThemeFile)
 
                 if builtin contains $activeTheme $themeNames
-                    ${installUser} $activeTheme
+                    ${installUser} $targetUser $activeTheme
                 else
-                    ${installUser} $defaultTheme
+                    ${installUser} $targetUser $defaultTheme
                 end
             '';
 in
@@ -44,11 +51,12 @@ pkgs.writeScriptBin
 "activate"
 
 ''
-
 #!${pkgs.fish}/bin/fish
 
-for user in (${pkgs.coreutils}/bin/ls -A ${usersDir})
-    ${pkgs.su}/bin/su -c ${activateUser} - $user
+set -l sourceUsers (${pkgs.coreutils}/bin/ls -A ${usersDir} | string split -n default)
+
+for targetUser in $sourceUsers
+    ${activateUser} $targetUser
 end
 
 ''

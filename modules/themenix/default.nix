@@ -62,7 +62,7 @@ in
         users = mkOption {
             type = types.attrsOf (types.submodule ({ options = {
                 defaultTheme = mkOption {
-                    type = types.str;
+                    type = types.nullOr types.str;
                 };
 
                 src = mkOption {

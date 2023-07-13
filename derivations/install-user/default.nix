@@ -37,14 +37,31 @@ pkgs.writeScript
 ''
 #!${pkgs.fish}/bin/fish
 
-set -l themeName $argv[1]
+argparse "u/user=" -- $argv
 
-set -q XDG_DATA_DIR; or set XDG_DATA_DIR $HOME/.local/share
-set -l dataDir $XDG_DATA_DIR/themenix
-set -l trackedFilesFile $dataDir/tracked_files
-set -l activeThemeFile $dataDir/active_theme
+set -l targetUser $argv[1]
+set -l themeName $argv[2]
 
-set -l themeDir (${pkgs.coreutils}/bin/realpath ${usersDir}/(whoami)/themes/$themeName)
+set -l sourceUser
+if set -q _flag_user
+    set sourceUser $_flag_user
+else if [ -e ${usersDir}/$targetUser ]
+    set sourceUser $targetUser
+else if [ -e ${usersDir}/default ]
+    set sourceUser default
+else
+    builtin exit
+end
+
+set -l targetHomeDir (${pkgs.getent}/bin/getent passwd $targetUser | ${pkgs.coreutils}/bin/cut -d : -f 6)
+set -l targetXdgDataHome (${pkgs.su}/bin/su -s ${pkgs.bash}/bin/bash -c "${pkgs.coreutils}/bin/echo $XDG_DATA_HOME" - $targetUser)
+[ -n "$targetXdgDataHome" ]; or set targetXdgDataHome $targetHomeDir/.local/share
+
+set -l targetDataDir $targetXdgDataHome/themenix
+set -l trackedFilesFile $targetDataDir/tracked_files
+set -l activeThemeFile $targetDataDir/active_theme
+
+set -l sourceDir (${pkgs.coreutils}/bin/realpath ${usersDir}/$sourceUser/themes/$themeName)
 set -l trackedFiles
 [ -e $trackedFilesFile ]; and set trackedFiles (${pkgs.coreutils}/bin/cat $trackedFilesFile)
 
@@ -56,24 +73,24 @@ if [ (builtin count $trackedFiles) -gt 0 ]
         set invalidated false
 
         for file in $trackedFiles
-            set -l homeFile $HOME/$file
-            set -l themeFile $themeDir/$file
+            set -l targetFile $targetHomeDir/$file
+            set -l sourceFile $sourceDir/$file
 
-            [ -e $themeFile ]; and continue
+            [ -e $sourceFile ]; and continue
 
-            if [ ! -e $homeFile ]
-                # tracked file has already been removed. remove from tracked files list.
+            if [ ! -e $targetFile ]
+                # Tracked file has already been removed. remove from tracked files list.
                 set trackedFiles (string split -n $file $trackedFiles)
                 continue
             end
 
-            if [ -d $homeFile ]
-                if [ -n "$(${pkgs.coreutils}/bin/ls -A $homeFile)" ]
-                    # dir contains files. defer removal.
+            if [ -d $targetFile ]
+                if [ -n "$(${pkgs.coreutils}/bin/ls -A $targetFile)" ]
+                    # Dir contains files. Defer removal.
                     ! builtin contains $file $deferredDirs; and set -a deferredDirs $file
                 else
-                    # dir is empty. free to rm.
-                    ${pkgs.coreutils}/bin/rm -r $homeFile
+                    # Dir is empty. Free to rm.
+                    ${pkgs.coreutils}/bin/rm -r $targetFile
                     set deferredDirs (string split -n $file $deferredDirs)
                     set trackedFiles (string split -n $file $trackedFiles)
                     set invalidated true
@@ -81,15 +98,15 @@ if [ (builtin count $trackedFiles) -gt 0 ]
                 continue
             end
 
-            if [ -e $homeFile ]
-                ${pkgs.coreutils}/bin/rm $homeFile
+            if [ -e $targetFile ]
+                ${pkgs.coreutils}/bin/rm $targetFile
                 set trackedFiles (string split -n $file $trackedFiles)
                 set invalidated true
             end
         end
     end
 
-    # untrack any deferred dirs which couldn't be removed.
+    # Untrack any deferred dirs which couldn't be removed.
     for dir in $deferredDirs
         set trackedFiles (string split -n $dir $trackedFiles)
         builtin set_color yellow
@@ -99,40 +116,38 @@ if [ (builtin count $trackedFiles) -gt 0 ]
     end
 end
 
-for themeFile in (${pkgs.findutils}/bin/find $themeDir -type f)
-    set -l file (string split -n -m1 $themeDir/ $themeFile)
-    set -l homeFile $HOME/$file
+for sourceFile in (${pkgs.findutils}/bin/find $sourceDir -type f)
+    set -l file (string split -n -m1 $sourceDir/ $sourceFile)
+    set -l targetFile $targetHomeDir/$file
 
-    # ensure that parent directories exist and add any directories we make to tracked files list.
+    # Ensure that parent directories exist and add any directories we make to tracked files list.
     set -l segments (string split / (${pkgs.coreutils}/bin/dirname $file))
     for i in (${pkgs.coreutils}/bin/seq (builtin count $segments))
         set -l dir (string join / $segments[(${pkgs.coreutils}/bin/seq $i)])
-        set -l homeDir $HOME/$dir
+        set -l targetDir $HOME/$dir
 
-        if [ ! -e $homeDir ]
-            ${pkgs.coreutils}/bin/mkdir $homeDir
+        if [ ! -e $targetDir ]
+            ${pkgs.coreutils}/bin/mkdir $targetDir
             set -a trackedFiles $dir
         end
     end
 
-    ${pkgs.coreutils}/bin/cp --no-preserve=mode,ownership $themeFile $homeFile
-    if [ -x $themeFile ]
-        ${pkgs.coreutils}/bin/chmod +x $homeFile
+    ${pkgs.coreutils}/bin/cp --no-preserve=mode,ownership $sourceFile $targetFile
+    if [ -x $sourceFile ]
+        ${pkgs.coreutils}/bin/chmod +x $targetFile
     else
-        ${pkgs.coreutils}/bin/chmod -x $homeFile
+        ${pkgs.coreutils}/bin/chmod -x $targetFile
     end
 
     ! builtin contains $file $trackedFiles; and set -a trackedFiles $file
 end
 
-${pkgs.coreutils}/bin/mkdir -p $dataDir
+${pkgs.coreutils}/bin/mkdir -p $targetDataDir
 ${pkgs.coreutils}/bin/truncate -s 0 $trackedFilesFile
 string join \n $trackedFiles > $trackedFilesFile
 ${pkgs.coreutils}/bin/echo $themeName > $activeThemeFile
 
-set -U THEMENIX_THEME_NAME $themeName
-
-${postInstall}
+${pkgs.su}/bin/su -c ${postInstall} - $targetUser
 ''
 
 )

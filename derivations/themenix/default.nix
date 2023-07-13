@@ -6,16 +6,38 @@ let
     inherit (builtins)
         attrNames
         elem
-        isString
-        mapAttrs
-        seq;
+        filter;
 
-    inherit (std.trivial)
-        throwIfNot;
+    inherit (std.lists)
+        foldr;
+
+    inherit (std.attrsets)
+        mapAttrsToList
+        nameValuePair;
+    
+    inherit (std.asserts)
+        assertMsg;
 in
 
 std.makeOverridable
 ({ themes, users, postInstallScripts }:
+
+assert
+    let
+        usersAttrList = mapAttrsToList nameValuePair users;
+        nonDefaultUsersAttrList = filter ({ name, ... }: name != "default") usersAttrList;
+    in
+        foldr
+        ({ name, value }: z: z -> (
+            assert assertMsg (value ? "defaultTheme")
+                ("Every user must define a defaultTheme." + " " +
+                "User ${name} is missing a defaultTheme.");
+            assert assertMsg (elem value.defaultTheme (attrNames themes))
+                "User ${name} defaultTheme ${value.defaultTheme} does not exist.";
+            true
+        ))
+        true
+        nonDefaultUsersAttrList;
 
 let
     usersDir = pkgs.users-dir.override {
@@ -26,23 +48,7 @@ let
     };
 in
 
-(seq
-
-# Assert users defaultTheme.
-(mapAttrs (userKey: userValue:
-    throwIfNot
-    (userValue ? "defaultTheme")
-    ("Every user must define a defaultTheme." + " " +
-    "User ${userKey} is missing a defaultTheme.")
-    (
-        throwIfNot
-        (elem userValue.defaultTheme (attrNames themes))
-        "User ${userKey} defaultTheme ${userValue.defaultTheme} does not exist."
-        userValue
-    )
-) users)
-
-(pkgs.runCommandLocal
+pkgs.runCommandLocal
 "themenix"
 {}
 ''
@@ -50,9 +56,7 @@ in
 mkdir -p $out/bin
 cp ${installTheme} $out/bin/installtheme
 
-'')
-
-)
+''
 
 )
 {

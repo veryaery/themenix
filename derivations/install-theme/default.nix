@@ -28,8 +28,9 @@ pkgs.writeScript
 #!${pkgs.fish}/bin/fish
 
 set -l themeNames ${escapeFishArgs themeNames}
+set -l sourceUsers (${pkgs.coreutils}/bin/ls -A ${usersDir} | string split -n default)
 
-argparse "g/global" -- $argv
+argparse "u/user=" "g/global" -- $argv
 
 if [ (builtin count $argv) -lt 1 ]
     ${pkgs.coreutils}/bin/echo (builtin set_color red)No theme was provided.(builtin set_color normal) >&2
@@ -45,13 +46,28 @@ if ! builtin contains $themeName $themeNames
     return 1
 end
 
-if [ -n "$_flag_global" ]
-    for user in (${pkgs.coreutils}/bin/ls -A ${usersDir})
-        ${pkgs.su}/bin/su -c "${installUser} $themeName" - $user
+set -l sourceUser
+if set -q _flag_user
+    set sourceUser $_flag_user
+    if ! builtin contains $_flag_user $sourceUsers
+        ${pkgs.coreutils}/bin/echo (builtin set_color red)The user $sourceUser is not defined in this themenix configuration.(builtin set_color normal) >&2
+        ${pkgs.coreutils}/bin/echo (builtin set_color green)Available users:(builtin set_color normal) $sourceUsers >&2
+        return 1
+    end
+end
+
+set -l args $themeName
+
+[ -n "$sourceUser" ]; and set -a args -u $sourceUser
+
+if set -q _flag_global
+    for targetUser in $sourceUsers
+        ${installUser} $targetUser $args
     end
 else
-    ${installUser} $themeName
+    ${installUser} (${pkgs.coreutils}/bin/whoami) $args
 end
+
 ''
 
 )

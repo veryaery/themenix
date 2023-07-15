@@ -1,10 +1,8 @@
-{ flakeRoot, lib } @ args:
+{ lib, overlay }:
 
-{
-    themes ? {}
-}:
+{ themes ? {} }:
 
-{ config, pkgs, ... } @ nixosModuleArgs:
+{ config, pkgs, ... } @ args:
 
 let 
     std = args.lib; 
@@ -22,16 +20,7 @@ let
     inherit (std)
         types;
 
-    drvsPath = flakeRoot + "/derivations";
-    pkgs' = pkgs.extend (self: super: {
-        substitutions-json = import (drvsPath + "/substitutions-json") self;
-        substitute-dir = import (drvsPath + "/substitute-dir") self;
-        install-user = import (drvsPath + "/install-user") self;
-        users-dir = import (drvsPath + "/users-dir") self;
-        install-theme = import (drvsPath + "/install-theme") self { inherit lib; };
-        activate = import (drvsPath + "/activate") self { inherit lib; };
-        themenix = import (drvsPath + "/themenix") self;
-    });
+    pkgs' = pkgs.extend overlay;
 
     themenix = pkgs'.themenix.override {
         inherit themes;

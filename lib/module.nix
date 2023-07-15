@@ -1,4 +1,4 @@
-{ std, flakeRoot }:
+{ std }:
 
 let
     inherit (builtins)
@@ -35,13 +35,13 @@ let
         ))
         (readDir themesPath);
 
-    themenix = { themes ? {}, themeArgs ? null }:
+    makeThemenixWrapper = themenix: { themes ? {}, themeArgs ? null }:
         let themes' =
             if isAttrs themes
             then themes
             else readThemes themes themeArgs;
-        in import (flakeRoot + "/modules/themenix") { themes = themes'; };
+        in themenix { themes = themes'; };
 in        
 {
-    inherit themenix;
+    inherit makeThemenixWrapper;
 }

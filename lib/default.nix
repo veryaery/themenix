@@ -7,7 +7,7 @@ in
 {
     inherit module;
     inherit (module)
-        themenix;
+        makeThemenixWrapper;
 
     inherit strings;
     inherit (strings)

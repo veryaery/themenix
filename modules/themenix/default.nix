@@ -23,18 +23,15 @@ let
         types;
 
     drvsPath = flakeRoot + "/derivations";
-    pkgs' = (((pkgs
-        .extend (self: super: { substitutions-json = import (drvsPath + "/substitutions-json") super; }))
-        .extend (self: super: {
-            substitute-dir = import (drvsPath + "/substitute-dir") super;
-            install-user = import (drvsPath + "/install-user") super;
-        }))
-        .extend (self: super: {
-            users-dir = import (drvsPath + "/users-dir") super;
-            install-theme = import (drvsPath + "/install-theme") super { inherit lib; };
-            activate = import (drvsPath + "/activate") super { inherit lib; };
-        }))
-        .extend (self: super: { themenix = import (drvsPath + "/themenix") super; });
+    pkgs' = pkgs.extend (self: super: {
+        substitutions-json = import (drvsPath + "/substitutions-json") self;
+        substitute-dir = import (drvsPath + "/substitute-dir") self;
+        install-user = import (drvsPath + "/install-user") self;
+        users-dir = import (drvsPath + "/users-dir") self;
+        install-theme = import (drvsPath + "/install-theme") self { inherit lib; };
+        activate = import (drvsPath + "/activate") self { inherit lib; };
+        themenix = import (drvsPath + "/themenix") self;
+    });
 
     themenix = pkgs'.themenix.override {
         inherit themes;

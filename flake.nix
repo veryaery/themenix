@@ -14,17 +14,15 @@
         packages = flake-utils.lib.eachDefaultSystem (system:
             let pkgs = import nixpkgs {
                 localSystem = { inherit system; };
-                overlays = [
-                    (self: super: { substitutions-json = import ./derivations/substitutions-json super; })
-                    (self: super: {
-                        substitute-dir = import ./derivations/substitute-dir super;
-                        install-user = import ./derivations/install-user super; })
-                    (self: super: {
-                        users-dir = import ./derivations/users-dir super;
-                        install-theme = import ./derivations/install-theme super { inherit lib; };
-                        activate = import ./derivations/activate super { inherit lib; }; })
-                    (self: super: { themenix = import ./derivations/themenix super; })
-                ];
+                overlays = [ (self: super: {
+                    substitutions-json = import ./derivations/substitutions-json self;
+                    substitute-dir = import ./derivations/substitute-dir self;
+                    install-user = import ./derivations/install-user self;
+                    users-dir = import ./derivations/users-dir self;
+                    install-theme = import ./derivations/install-theme self { inherit lib; };
+                    activate = import ./derivations/activate self { inherit lib; };
+                    themenix = import ./derivations/themenix self;
+                }) ];
             }; in {
                 packages.default = pkgs.themenix;
             });

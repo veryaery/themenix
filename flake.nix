@@ -26,5 +26,5 @@
             let pkgs = nixpkgs.legacyPackages.${system}.extend overlay;
             in { packages.default = pkgs.themenix; }
         );
-    in outputs // { nixosModules.default = makeThemenixWrapper (./modules/themenix { std, overlay }); }
+    in outputs // { nixosModules.default = makeThemenixWrapper (./modules/themenix { lib, overlay }); }
 }
